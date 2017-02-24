@@ -10,12 +10,14 @@ def save_dataset(path, save_path, train_or_val='train'):
     shape_img = img.shape
     save_path = save_path + train_or_val + '_dset.npy'
     fname = os.path.join(mkdtemp(), 'newfile.dat')
-    dset = np.memmap(fname, dtype='uint8', mode='w+',
+    dset = np.memmap(fname, dtype='float32', mode='w+',
                      shape=(len(filelist), shape_img[0], shape_img[1], shape_img[2]))
 
     for i in range(0,len(filelist)):
         filename = path + filelist[i]
-        dset[i] = cv2.imread(filename, cv2.IMREAD_COLOR)
+        image = cv2.imread(filename, cv2.IMREAD_COLOR)
+        norm_image = cv2.normalize(image, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        dset[i] = norm_image
 
 
     np.save(save_path,dset)
@@ -29,8 +31,9 @@ def load_dataset(load_path):
 
 
 def make_input_output_set(save_path, train_or_val='train'):
+
     dset_path = save_path + train_or_val + '_dset.npy'
-    dset = load_dataset(dset_path,)
+    dset = load_dataset(dset_path)
     img = dset[0]
     assert (img.shape[0] == img.shape[1])
     len_side = img.shape[0]
@@ -44,14 +47,14 @@ def make_input_output_set(save_path, train_or_val='train'):
     fname1 = os.path.join(mkdtemp(), 'newfile2.dat')
     fname2 = os.path.join(mkdtemp(), 'newfile3.dat')
 
-    dset_middle = np.memmap(fname1, dtype='uint8', mode='w+', shape=shape_middle)
-    dset_empty_middle = np.memmap(fname2, dtype='uint8', mode='w+', shape=dset.shape)
+    dset_middle = np.memmap(fname1, dtype='float32', mode='w+', shape=shape_middle)
+    dset_empty_middle = np.memmap(fname2, dtype='float32', mode='w+', shape=dset.shape)
 
     for i in range(0, len(dset)):
         dset_empty_middle[i] = dset[i]
         img = dset[i]
         middle_of_img = img[start:end, start:end, :]
-        dset_empty_middle[i][start:end, start:end, :] = 0
+        dset_empty_middle[i][start:end, start:end, :] = 0.0
         dset_middle[i] = middle_of_img
 
     np.save(save_path_middle,dset_middle)
@@ -70,3 +73,29 @@ def get_datasets(save_path, train_or_val='train'):
     dset_middle_empty = np.load(save_path_middle_empty,mmap_mode='r+')
 
     return dset, dset_middle, dset_middle_empty
+
+
+def write_predicted(test_set,test_set_middle_empty,predictions,write_path):
+    rows = test_set[0].shape[0]
+    cols = test_set[0].shape[1]
+    channels = test_set[0].shape[2]
+
+    assert(rows==cols)
+
+    image = np.zeros((rows,cols*3+20,channels))
+    start = int(round(rows / 4))
+    end = int(round(rows * 3 / 4))
+    assert(len(test_set)==len(test_set_middle_empty)==len(predictions))
+
+    for i in range(0,len(test_set)):
+        image = np.zeros((rows, cols * 3 + 20, channels))
+        image[:,0:cols,:] = test_set[i]
+        image[:,cols+10:cols*2+10,:] = test_set_middle_empty[i]
+        middle_filled_image = test_set_middle_empty[i]
+        middle_filled_image[start:end, start:end, :] = predictions[i]
+        image[:,cols*2+20:cols*3+20,:] = middle_filled_image
+        #filename
+        filename = write_path + str(i).zfill(len(str(len(test_set))))+'.jpg'
+        #imwrite
+        image = (image*255).astype('uint8')
+        cv2.imwrite(filename,image)
