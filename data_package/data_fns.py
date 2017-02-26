@@ -90,6 +90,7 @@ def write_predicted(test_set,test_set_middle_empty,predictions,write_path):
     for i in range(0,len(test_set)):
         image = np.zeros((rows, cols * 3 + 20, channels))
         image[:,0:cols,:] = test_set[i]
+        test_set_middle_empty[i][start:end,start:end,:] = 0.0
         image[:,cols+10:cols*2+10,:] = test_set_middle_empty[i]
         middle_filled_image = test_set_middle_empty[i]
         middle_filled_image[start:end, start:end, :] = predictions[i]

@@ -1,4 +1,4 @@
-from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D,Reshape
+from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D,Reshape,Flatten
 from keras.models import Model
 import keras.backend as K
 from keras.optimizers import SGD
@@ -136,9 +136,11 @@ def vgg_model_non_linear(shape,maxpool=False,op_only_middle=True,highcap=True):
 
     #Dense Layer with sigmoid ACTIVATION
     if(op_only_middle):
+        x = Flatten()(x)
         x = Dense(3072,activation='sigmoid')(x)
         x = Reshape((32,32,3))(x)
     else:
+        x = Flatten()(x)
         x = Dense(3072*4,activation='sigmoid')(x)
         x = Reshape((64,64,3))(x)
 

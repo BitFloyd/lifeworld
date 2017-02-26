@@ -10,8 +10,18 @@ save_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/'
 dset_train, dset_middle_train, dset_middle_empty_train = data_fns.get_datasets(save_path, 'train')
 dset_val, dset_middle_val, dset_middle_empty_val = data_fns.get_datasets(save_path, 'val')
 shape_img = dset_train[0].shape
+rows = shape_img[0]
+cols = shape_img[1]
+assert(rows==cols)
+start = int(round(rows / 4))
+end = int(round(rows * 3 / 4))
+#assert middle empty is 0 in the middle for sure.
+for i in range(0,len(dset_middle_empty_train)):
+    dset_middle_empty_train[i][start:end,start:end,:] = 0.0
+for i in range(0,len(dset_middle_empty_val)):
+    dset_middle_empty_val[i][start:end,start:end,:] = 0.0
 
-# EXPERIMENT 1
+# EXPERIMENT 2
 # --------------
 # VGG type model. Max pool in the middle of the representation to reduce
 # the size in half.
@@ -27,8 +37,8 @@ reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=10, min_l
 
 model = model_zoo.vgg_model_non_linear(shape_img, maxpool=True, op_only_middle=True,highcap=False)
 
-#if (os.path.isfile(model_filepath)):
-#    model = load_model(model_filepath)
+if (os.path.isfile(model_filepath)):
+    model = load_model(model_filepath)
 
 print "START FIT"
 history = model.fit(dset_middle_empty_train, dset_middle_train,
