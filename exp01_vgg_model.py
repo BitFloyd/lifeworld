@@ -28,13 +28,13 @@ for i in range(0,len(dset_middle_empty_val)):
 # Key-point: No max-pooling anywhere else because.... translation independence not important.
 
 print "GET MODEL"
-model_filepath = '/usr/local/data/sejacob/lifeworld/data/inpainting/models/exp01_vgg.model'
+model_filepath = '/usr/local/data/sejacob/lifeworld/data/inpainting/models/exp01_vgg_mp_False.model'
 
 es = EarlyStopping(monitor='val_loss', min_delta=1e-4, patience=20, verbose=1)
 checkpoint = ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=10, min_lr=0.00000001, verbose=1)
 
-model = model_zoo.vgg_model(shape_img, maxpool=True, op_only_middle=True,highcap=False)
+model = model_zoo.vgg_model(shape_img, maxpool=False, op_only_middle=True, highcap=False)
 
 if (os.path.isfile(model_filepath)):
     model = load_model(model_filepath)
@@ -50,5 +50,5 @@ predictions = model.predict(dset_middle_empty_val, batch_size=100)
 
 
 print "SAVE IMAGES"
-write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp01_maxpool_True_highcap_False_mp_middle/'
+write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp01_maxpool_False_highcap_False_mp_middle/'
 data_fns.write_predicted(dset_val, dset_middle_empty_val, predictions, write_path)
