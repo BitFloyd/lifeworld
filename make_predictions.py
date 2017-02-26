@@ -12,42 +12,30 @@ dset_val, dset_middle_val, dset_middle_empty_val = data_fns.get_datasets(save_pa
 shape_img = dset_train[0].shape
 rows = shape_img[0]
 cols = shape_img[1]
-assert(rows==cols)
+assert (rows == cols)
 start = int(round(rows / 4))
 end = int(round(rows * 3 / 4))
-for i in range(0,len(dset_middle_empty_train)):
-    dset_middle_empty_train[i][start:end,start:end,:] = 0.0
-for i in range(0,len(dset_middle_empty_val)):
-    dset_middle_empty_train[i][start:end,start:end,:] = 0.0
-
-# EXPERIMENT 1
-# --------------
-# VGG type model. Max pool in the middle of the representation to reduce
-# the size in half.
-
+# assert middle empty is 0 in the middle for sure.
+for i in range(0, len(dset_middle_empty_train)):
+    dset_middle_empty_train[i][start:end, start:end, :] = 0.0
+for i in range(0, len(dset_middle_empty_val)):
+    dset_middle_empty_val[i][start:end, start:end, :] = 0.0
 
 print "GET MODEL"
-model_filepath = '/usr/local/data/sejacob/lifeworld/data/inpainting/models/exp01_vgg_mp_False.model'
+model_filepath = '/usr/local/data/sejacob/lifeworld/data/inpainting/models/exp02_vgg.model'
 
 es = EarlyStopping(monitor='val_loss', min_delta=1e-4, patience=20, verbose=1)
 checkpoint = ModelCheckpoint(model_filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=10, min_lr=0.00000001, verbose=1)
 
-model = model_zoo.vgg_model(shape_img, filter_list=[16, 32, 64, 128], maxpool=False, op_only_middle=True, highcap=False)
+model = model_zoo.vgg_model_non_linear(shape_img, maxpool=True, op_only_middle=True, highcap=False)
 
 if (os.path.isfile(model_filepath)):
     model = load_model(model_filepath)
 
-print "START FIT"
-history = model.fit(dset_middle_empty_train, dset_middle_train,
-                    batch_size=100, nb_epoch=400,
-                    callbacks=[es, checkpoint, reduce_lr],
-                    validation_split=0.3,
-                    shuffle=True)
 print "MAKE PREDICTIONS"
 predictions = model.predict(dset_middle_empty_val, batch_size=100)
 
-
 print "SAVE IMAGES"
-write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp01_maxpool_False_highcap_False_mp_middle/'
+write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp02_maxpool_True_highcap_False_mp_middle/'
 data_fns.write_predicted(dset_val, dset_middle_empty_val, predictions, write_path)

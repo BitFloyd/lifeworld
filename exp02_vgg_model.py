@@ -25,8 +25,8 @@ for i in range(0,len(dset_middle_empty_val)):
 # --------------
 # VGG type model. Max pool in the middle of the representation to reduce
 # the size in half.
-# If reconstruction doesnt work well enough, try max-pool at the end as well.
-# Key-point: No max-pooling anywhere else because.... translation independence not important.
+# Sigmoid layer in the middle to reconstruct before convolution
+# Objective: No upsampling layers to avoid patchiness
 
 print "GET MODEL"
 model_filepath = '/usr/local/data/sejacob/lifeworld/data/inpainting/models/exp02_vgg.model'

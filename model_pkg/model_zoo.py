@@ -32,66 +32,67 @@ def loss_DSSIM_theano(y_true, y_pred):
 
     return (alpha*K.mean((1.0 - ssim) / 2.0) + beta*K.mean(K.square(y_pred - y_true), axis=-1))
 
-def vgg_model(shape,maxpool=False,op_only_middle=True,highcap=True):
+
+def vgg_model(shape, filter_list, maxpool=False, op_only_middle=True, highcap=True, ):
     input_img = Input(shape=shape)
 
-    x = Convolution2D(64, 3, 3, activation='relu', border_mode='same',dim_ordering='tf')(input_img)
+    x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same', dim_ordering='tf')(input_img)
     if(highcap):
-        x = Convolution2D(64, 3 , 3, activation='relu', border_mode='same')(x)
-        x = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
     if(maxpool):
         x = MaxPooling2D((2,2),border_mode='same')(x)
 
-    x = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(x)
+    x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
     if(highcap):
-        x = Convolution2D(128, 3 , 3, activation='relu', border_mode='same')(x)
-        x = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
     if(maxpool):
         x = MaxPooling2D((2, 2), border_mode='same')(x)
 
-    x = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(x)
+    x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
     if(highcap):
-        x = Convolution2D(256, 3 , 3, activation='relu', border_mode='same')(x)
-        x = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
     if(maxpool):
         x = MaxPooling2D((2, 2), border_mode='same')(x)
 
-    x = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(x)
+    x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
     if(highcap):
-        x = Convolution2D(512, 3 , 3, activation='relu', border_mode='same')(x)
-        x = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
     if(maxpool):
         x = MaxPooling2D((2, 2), border_mode='same')(x)
 
     if(op_only_middle):
         x = MaxPooling2D((2,2),border_mode='same')(x)
 
-    x = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(x)
+    x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
     if(highcap):
-        x = Convolution2D(512, 3 , 3, activation='relu', border_mode='same')(x)
-        x = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
     if(maxpool):
         x = UpSampling2D((2, 2))(x)
 
-    x = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(x)
+    x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
     if(highcap):
-        x = Convolution2D(256, 3 , 3, activation='relu', border_mode='same')(x)
-        x = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
     if(maxpool):
         x = UpSampling2D((2, 2))(x)
 
-    x = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(x)
+    x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
     if(highcap):
-        x = Convolution2D(128, 3 , 3, activation='relu', border_mode='same')(x)
-        x = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
     if(maxpool):
         x = UpSampling2D((2, 2))(x)
 
-    x = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(x)
+    x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
 
     if(highcap):
-        x = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(x)
-        x = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
     if (maxpool):
         x = UpSampling2D((2, 2))(x)
 
@@ -102,6 +103,7 @@ def vgg_model(shape,maxpool=False,op_only_middle=True,highcap=True):
     autoencoder.compile(optimizer=sgd, loss=loss_DSSIM_theano)
 
     return autoencoder
+
 
 def vgg_model_non_linear(shape,maxpool=False,op_only_middle=True,highcap=True):
     input_img = Input(shape=shape)
