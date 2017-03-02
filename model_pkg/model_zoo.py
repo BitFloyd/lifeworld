@@ -1,11 +1,13 @@
-from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D,Reshape,Flatten
-from keras.models import Model
+from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D, Reshape, Flatten
+from keras.applications.vgg16 import VGG16
+from keras.models import Model, Sequential
 import keras.backend as K
 from keras.optimizers import SGD
 from theano.tensor.nnet.neighbours import images2neibs
 
-alpha = 0.8
-beta = 0.2
+alpha = 0.5
+beta = 1 - alpha
+
 
 def loss_DSSIM_theano(y_true, y_pred):
     # There are additional parameters for this function
@@ -30,147 +32,231 @@ def loss_DSSIM_theano(y_true, y_pred):
     denom = (u_true ** 2 + u_pred ** 2 + c1) * (var_pred + var_true + c2)
     ssim /= denom  # no need for clipping, c1 and c2 make the denom non-zero
 
-    return (alpha*K.mean((1.0 - ssim) / 2.0) + beta*K.mean(K.square(y_pred - y_true), axis=-1))
+    return (alpha * K.mean((1.0 - ssim) / 2.0) + beta * K.mean(K.square(y_pred - y_true), axis=-1))
 
 
-def vgg_model(shape, filter_list, maxpool=False, op_only_middle=True, highcap=True, ):
+def vgg_model(shape, filter_list, maxpool=False, op_only_middle=True, highcap=True):
     input_img = Input(shape=shape)
 
     x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same', dim_ordering='tf')(input_img)
-    if(highcap):
+    if (highcap):
         x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
-        x = MaxPooling2D((2,2),border_mode='same')(x)
+    if (maxpool):
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
 
     x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
+    if (highcap):
         x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
+    if (maxpool):
         x = MaxPooling2D((2, 2), border_mode='same')(x)
 
     x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
+    if (highcap):
         x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
+    if (maxpool):
         x = MaxPooling2D((2, 2), border_mode='same')(x)
 
     x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
+    if (highcap):
         x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
+    if (maxpool):
         x = MaxPooling2D((2, 2), border_mode='same')(x)
 
-    if(op_only_middle):
-        x = MaxPooling2D((2,2),border_mode='same')(x)
+    if (op_only_middle):
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
 
     x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
+    if (highcap):
         x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
+    if (maxpool):
         x = UpSampling2D((2, 2))(x)
 
     x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
+    if (highcap):
         x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
+    if (maxpool):
         x = UpSampling2D((2, 2))(x)
 
     x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
+    if (highcap):
         x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
+    if (maxpool):
         x = UpSampling2D((2, 2))(x)
 
     x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
 
-    if(highcap):
+    if (highcap):
         x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
     if (maxpool):
         x = UpSampling2D((2, 2))(x)
 
-    decoded = Convolution2D(shape[2],3,3,activation='relu',border_mode='same')(x)
+    decoded = Convolution2D(shape[2], 3, 3, activation='relu', border_mode='same')(x)
 
     autoencoder = Model(input_img, decoded)
-    sgd = SGD(lr=0.001,momentum=0.9,nesterov=True)
+    sgd = SGD(lr=0.001, momentum=0.9, nesterov=True)
     autoencoder.compile(optimizer=sgd, loss=loss_DSSIM_theano)
-
     return autoencoder
 
 
-def vgg_model_non_linear(shape,maxpool=False,op_only_middle=True,highcap=True):
+def vgg_model_non_linear(shape, maxpool=False, op_only_middle=True, highcap=True):
     input_img = Input(shape=shape)
 
-    x = Convolution2D(64, 3, 3, activation='relu', border_mode='same',dim_ordering='tf')(input_img)
-    if(highcap):
-        x = Convolution2D(64, 3 , 3, activation='relu', border_mode='same')(x)
+    x = Convolution2D(64, 3, 3, activation='relu', border_mode='same', dim_ordering='tf')(input_img)
+    if (highcap):
         x = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
-        x = MaxPooling2D((2,2),border_mode='same')(x)
+        x = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
 
     x = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
-        x = Convolution2D(128, 3 , 3, activation='relu', border_mode='same')(x)
+    if (highcap):
         x = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
+        x = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
         x = MaxPooling2D((2, 2), border_mode='same')(x)
 
     x = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
-        x = Convolution2D(256, 3 , 3, activation='relu', border_mode='same')(x)
+    if (highcap):
         x = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
+        x = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
         x = MaxPooling2D((2, 2), border_mode='same')(x)
 
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
-        x = Convolution2D(512, 3 , 3, activation='relu', border_mode='same')(x)
+    if (highcap):
         x = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(x)
-    if(maxpool):
+        x = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
         x = MaxPooling2D((2, 2), border_mode='same')(x)
 
-    #Dense Layer with sigmoid ACTIVATION
-    if(op_only_middle):
+    # Dense Layer with sigmoid ACTIVATION
+    if (op_only_middle):
         x = Flatten()(x)
-        x = Dense(3072,activation='sigmoid')(x)
-        x = Reshape((32,32,3))(x)
+        x = Dense(3072, activation='sigmoid')(x)
+        x = Reshape((32, 32, 3))(x)
     else:
         x = Flatten()(x)
-        x = Dense(3072*4,activation='sigmoid')(x)
-        x = Reshape((64,64,3))(x)
+        x = Dense(3072 * 4, activation='sigmoid')(x)
+        x = Reshape((64, 64, 3))(x)
 
     x = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
-        x = Convolution2D(512, 3 , 3, activation='relu', border_mode='same')(x)
+    if (highcap):
+        x = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(512, 3, 3, activation='relu', border_mode='same')(x)
 
     x = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
-        x = Convolution2D(256, 3 , 3, activation='relu', border_mode='same')(x)
+    if (highcap):
+        x = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(256, 3, 3, activation='relu', border_mode='same')(x)
 
     x = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(x)
-    if(highcap):
-        x = Convolution2D(128, 3 , 3, activation='relu', border_mode='same')(x)
+    if (highcap):
+        x = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(128, 3, 3, activation='relu', border_mode='same')(x)
 
     x = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(x)
 
-    if(highcap):
+    if (highcap):
         x = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(x)
         x = Convolution2D(64, 3, 3, activation='relu', border_mode='same')(x)
 
-    decoded = Convolution2D(shape[2],3,3,activation='relu',border_mode='same')(x)
+    decoded = Convolution2D(shape[2], 3, 3, activation='relu', border_mode='same')(x)
 
     autoencoder = Model(input_img, decoded)
-    sgd = SGD(lr=0.001,momentum=0.9,nesterov=True)
+    sgd = SGD(lr=0.001, momentum=0.9, nesterov=True)
     autoencoder.compile(optimizer=sgd, loss=loss_DSSIM_theano)
 
     return autoencoder
+
+
+def feature_comparison_model(shape, filter_list, maxpool=True, highcap=False, op_only_middle=False):
+    input_img = Input(shape=shape)
+    feat_extract_model = VGG16(include_top=False, weights='imagenet', input_shape=shape)
+
+    x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same', dim_ordering='tf')(input_img)
+    if (highcap):
+        x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
+
+    x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
+    if (highcap):
+        x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
+
+    x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
+    if (highcap):
+        x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
+
+    x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
+    if (highcap):
+        x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
+
+    if (op_only_middle):
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
+
+    x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
+    if (highcap):
+        x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[3], 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
+        x = UpSampling2D((2, 2))(x)
+
+    x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
+    if (highcap):
+        x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[2], 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
+        x = UpSampling2D((2, 2))(x)
+
+    x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
+    if (highcap):
+        x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[1], 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
+        x = UpSampling2D((2, 2))(x)
+
+    x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
+
+    if (highcap):
+        x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same')(x)
+    if (maxpool):
+        x = UpSampling2D((2, 2))(x)
+
+    decoded = Convolution2D(shape[2], 3, 3, activation='relu', border_mode='same')(x)
+
+    for i in range(0, len(feat_extract_model.layers)):
+        feat_extract_model.layers[i].trainable = False
+
+    autoencoder = Model(input_img, decoded)
+    full_model = Sequential()
+
+    for i in range(0, len(autoencoder.layers)):
+        full_model.add(autoencoder.layers[i])
+
+    for i in range(1, len(feat_extract_model.layers)):
+        full_model.add(feat_extract_model.layers[i])
+
+    full_model.add(Flatten())
+    sgd = SGD(lr=0.001, momentum=0.9, nesterov=True)
+    full_model.compile(optimizer=sgd, loss='mse')
+
+    return full_model

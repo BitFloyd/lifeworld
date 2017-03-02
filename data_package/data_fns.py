@@ -75,7 +75,7 @@ def get_datasets(save_path, train_or_val='train'):
     return dset, dset_middle, dset_middle_empty
 
 
-def write_predicted(test_set,test_set_middle_empty,predictions,write_path):
+def write_predicted(test_set, test_set_middle_empty, predictions, write_path, middle_only=True):
     rows = test_set[0].shape[0]
     cols = test_set[0].shape[1]
     channels = test_set[0].shape[2]
@@ -92,9 +92,13 @@ def write_predicted(test_set,test_set_middle_empty,predictions,write_path):
         image[:,0:cols,:] = test_set[i]
         test_set_middle_empty[i][start:end,start:end,:] = 0.0
         image[:,cols+10:cols*2+10,:] = test_set_middle_empty[i]
-        middle_filled_image = test_set_middle_empty[i]
-        middle_filled_image[start:end, start:end, :] = predictions[i]
-        image[:,cols*2+20:cols*3+20,:] = middle_filled_image
+        if (middle_only):
+            middle_filled_image = test_set_middle_empty[i]
+            middle_filled_image[start:end, start:end, :] = predictions[i]
+            image[:, cols * 2 + 20:cols * 3 + 20, :] = middle_filled_image
+        else:
+            image[:, cols * 2 + 20:cols * 3 + 20, :] = predictions[i]
+
         #filename
         filename = write_path + str(i).zfill(len(str(len(test_set))))+'.jpg'
         #imwrite
