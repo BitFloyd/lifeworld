@@ -1,9 +1,10 @@
+import os
+from keras.applications.vgg16 import VGG16
+from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from keras.models import load_model
+
 from data_package import data_fns
 from model_pkg import model_zoo
-from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-from keras.applications.vgg16 import VGG16
-import os
-from keras.models import load_model
 
 # Get data as numpy mem-map to not overload the RAM
 print "GET_DATASETS"
@@ -45,8 +46,9 @@ x = feat_extract_model.output
 x = model_zoo.Flatten()(x)
 feature_extraction_model_flat = model_zoo.Model(input=feat_extract_model.input, output=x)
 
-print "GET VGG FEATURES"
-train_feats = feature_extraction_model_flat.predict(dset_train, batch_size=200)
+#
+# print "GET VGG FEATURES"
+# train_feats = feature_extraction_model_flat.predict(dset_train, batch_size=200)
 
 # print "START FIT"
 # history = full_model.fit(dset_middle_empty_train, train_feats,

@@ -1,10 +1,13 @@
-from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D, Reshape, Flatten
-from keras.applications.vgg16 import VGG16
-from keras.models import Model, Sequential
 import keras.backend as K
+from keras.applications.vgg16 import VGG16
+from keras.layers import BatchNormalization
+from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D, Reshape, Flatten, merge, Dropout
+from keras.layers import Activation
+from keras.models import Model, Sequential
 from keras.optimizers import SGD
+from theano.tensor import set_subtensor
 from theano.tensor.nnet.neighbours import images2neibs
-
+from keras import objectives
 alpha = 0.5
 beta = 1 - alpha
 
@@ -33,6 +36,12 @@ def loss_DSSIM_theano(y_true, y_pred):
     ssim /= denom  # no need for clipping, c1 and c2 make the denom non-zero
 
     return (alpha * K.mean((1.0 - ssim) / 2.0) + beta * K.mean(K.square(y_pred - y_true), axis=-1))
+
+
+def make_trainable(net, val):
+    net.trainable = val
+    for l in net.layers:
+        l.trainable = val
 
 
 def vgg_model(shape, filter_list, maxpool=False, op_only_middle=True, highcap=True):
@@ -260,3 +269,216 @@ def feature_comparison_model(shape, filter_list, maxpool=True, highcap=False, op
     full_model.compile(optimizer=sgd, loss='mse')
 
     return full_model
+
+
+def batch_norm_vgg_model(shape, filter_list, maxpool=True, op_only_middle=True, batch_norm=True):
+    rows = shape[0]
+    cols = shape[1]
+    assert (rows == cols)
+    start = int(round(rows / 4))
+    end = int(round(rows * 3 / 4))
+
+    input_img = Input(shape=shape)
+
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same', dim_ordering='tf')(input_img)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+
+    x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+
+    x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+
+    x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+
+    if (op_only_middle):
+        x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+
+    x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = UpSampling2D((2, 2))(x1)
+
+    x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = UpSampling2D((2, 2))(x1)
+
+    x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = UpSampling2D((2, 2))(x1)
+
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = UpSampling2D((2, 2))(x1)
+
+    decoded = Convolution2D(shape[2], 3, 3, activation='relu', border_mode='same')(x1)
+
+    autoencoder = Model(input_img, decoded)
+
+    sgd = SGD(lr=0.001, momentum=0.9, nesterov=True)
+
+    autoencoder.compile(optimizer=sgd, loss=loss_DSSIM_theano)
+
+    return autoencoder
+
+
+def GAN_model(shape, filter_list, maxpool=True, op_only_middle=True, batch_norm=False, autoencoder=False):
+    rows = shape[0]
+    cols = shape[1]
+    assert (rows == cols)
+    start = int(round(rows / 4))
+    end = int(round(rows * 3 / 4))
+
+    input_img = Input(shape=shape)
+
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same', dim_ordering='tf')(input_img)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+
+    x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+
+    x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+
+    x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+
+    if (op_only_middle):
+        x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+
+    x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = UpSampling2D((2, 2))(x1)
+
+    x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = UpSampling2D((2, 2))(x1)
+
+    x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = UpSampling2D((2, 2))(x1)
+
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
+    if (batch_norm):
+        x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    if (maxpool):
+        x1 = UpSampling2D((2, 2))(x1)
+
+    decoded = Convolution2D(shape[2], 3, 3, activation='relu', border_mode='same')(x1)
+
+    if (autoencoder):
+        autoencoder = Model(input=input_img, output=decoded)
+
+    input_background = Input(shape=shape)
+
+    merged = merge([decoded, input_background], mode=lambda x: set_subtensor(x[1][:, start:end, start:end, :], x[0]),
+                   output_shape=lambda x: x[1])
+
+    gan_merged_model = Model(input=[input_img, input_background], output=merged)
+
+    input_img_y = Input(shape=shape)
+
+    y1 = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same', dim_ordering='tf')(input_img_y)
+    y1 = BatchNormalization()(y1)
+
+    if (maxpool):
+        y1 = MaxPooling2D((2, 2), border_mode='same')(y1)
+
+    y1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(y1)
+    if (batch_norm):
+        y1 = BatchNormalization()(y1)
+    y1 = Activation('relu')(y1)
+    if (maxpool):
+        y1 = MaxPooling2D((2, 2), border_mode='same')(y1)
+
+    y1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(y1)
+    if (batch_norm):
+        y1 = BatchNormalization()(y1)
+    y1 = Activation('relu')(y1)
+    if (maxpool):
+        y1 = MaxPooling2D((2, 2), border_mode='same')(y1)
+
+    y1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(y1)
+    if (batch_norm):
+        y1 = BatchNormalization()(y1)
+    y1 = Activation('relu')(y1)
+    if (maxpool):
+        y1 = MaxPooling2D((2, 2), border_mode='same')(y1)
+
+    y1 = Flatten()(y1)
+    y1 = Dense(2048, activation='sigmoid')(y1)
+    y1 = Dropout(0.5)(y1)
+    y1 = Dense(2048, activation='sigmoid')(y1)
+    y1 = Dense(1, activation='sigmoid')(y1)
+
+    # vgg19 = VGG19(include_top=False, weights='imagenet', input_shape=shape)
+    # x = Flatten()(vgg19.output)
+    # x = Dense(2048, activation='sigmoid')(x)
+    # x = Dropout(0.5)(x)
+    # x = Dense(2048, activation='sigmoid')(x)
+    # x = Dense(1, activation='sigmoid')(x)
+    # adversary_model = Model(input = vgg19.input, output = x)
+
+    adversary_model = Model(input=input_img_y, output=y1)
+
+    if (autoencoder):
+        return autoencoder, gan_merged_model, adversary_model
+    else:
+        return gan_merged_model, adversary_model
+
+
+objectives.loss_DSSIM_theano = loss_DSSIM_theano
