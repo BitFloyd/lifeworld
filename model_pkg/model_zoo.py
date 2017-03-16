@@ -1,15 +1,47 @@
 import keras.backend as K
+import numpy as np
+from keras import objectives
 from keras.applications.vgg16 import VGG16
+from keras.layers import Activation, GaussianNoise
 from keras.layers import BatchNormalization
+from keras.layers import Conv2D, Conv2DTranspose
 from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D, Reshape, Flatten, merge, Dropout
-from keras.layers import Activation
+from keras.layers import LSTM, concatenate
+from keras.layers.advanced_activations import LeakyReLU
 from keras.models import Model, Sequential
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Adam
 from theano.tensor import set_subtensor
 from theano.tensor.nnet.neighbours import images2neibs
-from keras import objectives
+
 alpha = 0.5
 beta = 1 - alpha
+
+
+def shuffle_weights(model, weights=None):
+    """Randomly permute the weights in `model`, or the given `weights`.
+    This is a fast approximation of re-initializing the weights of a model.
+    Assumes weights are distributed independently of the dimensions of the weight tensors
+      (i.e., the weights have the same distribution along each dimension).
+    :param Model model: Modify the weights of the given model.
+    :param list(ndarray) weights: The model's weights will be replaced by a random permutation of these weights.
+      If `None`, permute the model's current weights.
+    """
+    if weights is None:
+        weights = model.get_weights()
+    weights = [np.random.permutation(w.flat).reshape(w.shape) for w in weights]
+    # Faster, but less random: only permutes along the first dimension
+    # weights = [np.random.permutation(w) for w in weights]
+    model.set_weights(weights)
+
+
+def weights_kick(model, kick=0.1):
+    weights = model.get_weights()
+
+    for j in range(0, len(weights)):
+        noise = kick * np.random.normal(loc=weights[j].mean(), scale=weights[j].std(), size=weights[j].shape)
+        weights[j] = weights[j] + noise
+
+    model.set_weights(weights)
 
 
 def loss_DSSIM_theano(y_true, y_pred):
@@ -350,7 +382,8 @@ def batch_norm_vgg_model(shape, filter_list, maxpool=True, op_only_middle=True, 
     return autoencoder
 
 
-def GAN_model(shape, filter_list, maxpool=True, op_only_middle=True, batch_norm=False, autoencoder=False):
+def GAN_model(shape, filter_list, maxpool=True, op_only_middle=True, batch_norm=False, autoencoder=False, highcap=False,
+              dropout=True):
     rows = shape[0]
     cols = shape[1]
     assert (rows == cols)
@@ -359,66 +392,167 @@ def GAN_model(shape, filter_list, maxpool=True, op_only_middle=True, batch_norm=
 
     input_img = Input(shape=shape)
 
-    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same', dim_ordering='tf')(input_img)
+    x1 = GaussianNoise(0.05)(input_img)
+
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same', dim_ordering='tf')(x1)
     if (batch_norm):
         x1 = BatchNormalization()(x1)
     x1 = Activation('relu')(x1)
+    if (highcap):
+        x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
+
+        x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
+
     if (maxpool):
         x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+    if (dropout):
+        x1 = Dropout(0.5)(x1)
 
     x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
     if (batch_norm):
         x1 = BatchNormalization()(x1)
     x1 = Activation('relu')(x1)
+    if (highcap):
+        x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
+
+        x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
+
     if (maxpool):
         x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+    if (dropout):
+        x1 = Dropout(0.5)(x1)
 
     x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
     if (batch_norm):
         x1 = BatchNormalization()(x1)
     x1 = Activation('relu')(x1)
+    if (highcap):
+        x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
+
+        x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
     if (maxpool):
         x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+    if (dropout):
+        x1 = Dropout(0.5)(x1)
 
     x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
     if (batch_norm):
         x1 = BatchNormalization()(x1)
     x1 = Activation('relu')(x1)
+    if (highcap):
+        x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
+
+        x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
     if (maxpool):
         x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+    if (dropout):
+        x1 = Dropout(0.5)(x1)
 
     if (op_only_middle):
         x1 = MaxPooling2D((2, 2), border_mode='same')(x1)
+        x1 = GaussianNoise(0.05)(x1)
 
     x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
     if (batch_norm):
         x1 = BatchNormalization()(x1)
     x1 = Activation('relu')(x1)
+    if (highcap):
+        x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
+
+        x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
     if (maxpool):
         x1 = UpSampling2D((2, 2))(x1)
+    if (dropout):
+        x1 = Dropout(0.5)(x1)
 
     x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
     if (batch_norm):
         x1 = BatchNormalization()(x1)
     x1 = Activation('relu')(x1)
+    if (highcap):
+        x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
+
+        x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
     if (maxpool):
         x1 = UpSampling2D((2, 2))(x1)
+    if (dropout):
+        x1 = Dropout(0.5)(x1)
 
     x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
     if (batch_norm):
         x1 = BatchNormalization()(x1)
     x1 = Activation('relu')(x1)
+    if (highcap):
+        x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
+
+        x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
     if (maxpool):
         x1 = UpSampling2D((2, 2))(x1)
+    if (dropout):
+        x1 = Dropout(0.5)(x1)
 
     x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
     if (batch_norm):
         x1 = BatchNormalization()(x1)
     x1 = Activation('relu')(x1)
+    if (highcap):
+        x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
+
+        x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
+        if (batch_norm):
+            x1 = BatchNormalization()(x1)
+        x1 = Activation('relu')(x1)
     if (maxpool):
         x1 = UpSampling2D((2, 2))(x1)
+    if (dropout):
+        x1 = Dropout(0.5)(x1)
 
-    decoded = Convolution2D(shape[2], 3, 3, activation='relu', border_mode='same')(x1)
+    decoded = Convolution2D(shape[2], 3, 3, activation='tanh', border_mode='same')(x1)
 
     if (autoencoder):
         autoencoder = Model(input=input_img, output=decoded)
@@ -432,46 +566,25 @@ def GAN_model(shape, filter_list, maxpool=True, op_only_middle=True, batch_norm=
 
     input_img_y = Input(shape=shape)
 
-    y1 = Convolution2D(filter_list[0], 3, 3, activation='relu', border_mode='same', dim_ordering='tf')(input_img_y)
+    y1 = Convolution2D(filter_list[0], 3, 3, border_mode='same', dim_ordering='tf', subsample=(2, 2))(input_img_y)
     y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
 
-    if (maxpool):
-        y1 = MaxPooling2D((2, 2), border_mode='same')(y1)
+    y1 = Convolution2D(filter_list[1], 3, 3, border_mode='same', subsample=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
 
-    y1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(y1)
-    if (batch_norm):
-        y1 = BatchNormalization()(y1)
-    y1 = Activation('relu')(y1)
-    if (maxpool):
-        y1 = MaxPooling2D((2, 2), border_mode='same')(y1)
+    y1 = Convolution2D(filter_list[2], 3, 3, border_mode='same', subsample=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
 
-    y1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(y1)
-    if (batch_norm):
-        y1 = BatchNormalization()(y1)
-    y1 = Activation('relu')(y1)
-    if (maxpool):
-        y1 = MaxPooling2D((2, 2), border_mode='same')(y1)
-
-    y1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(y1)
-    if (batch_norm):
-        y1 = BatchNormalization()(y1)
-    y1 = Activation('relu')(y1)
-    if (maxpool):
-        y1 = MaxPooling2D((2, 2), border_mode='same')(y1)
+    y1 = Convolution2D(filter_list[3], 3, 3, border_mode='same', subsample=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
 
     y1 = Flatten()(y1)
-    y1 = Dense(2048, activation='sigmoid')(y1)
     y1 = Dropout(0.5)(y1)
-    y1 = Dense(2048, activation='sigmoid')(y1)
     y1 = Dense(1, activation='sigmoid')(y1)
-
-    # vgg19 = VGG19(include_top=False, weights='imagenet', input_shape=shape)
-    # x = Flatten()(vgg19.output)
-    # x = Dense(2048, activation='sigmoid')(x)
-    # x = Dropout(0.5)(x)
-    # x = Dense(2048, activation='sigmoid')(x)
-    # x = Dense(1, activation='sigmoid')(x)
-    # adversary_model = Model(input = vgg19.input, output = x)
 
     adversary_model = Model(input=input_img_y, output=y1)
 
@@ -479,6 +592,471 @@ def GAN_model(shape, filter_list, maxpool=True, op_only_middle=True, batch_norm=
         return autoencoder, gan_merged_model, adversary_model
     else:
         return gan_merged_model, adversary_model
+
+
+def DCGAN_model(shape, filter_list, noise=True):
+    rows = shape[0]
+    cols = shape[1]
+    assert (rows == cols)
+    start = int(round(rows / 4))
+    end = int(round(rows * 3 / 4))
+
+    # GENERATOR
+    input_img = Input(shape=shape)
+
+    x1 = GaussianNoise(0.05)(input_img)
+
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same', dim_ordering='tf')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same', subsample=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same', subsample=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same', subsample=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same', subsample=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    # THIS IS THE MIDDLE OF THE GENERATOR (OP SHAPE HERE IS [4,4,filter_list[3])
+    x1 = GaussianNoise(0.05)(x1)
+
+    x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[3], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[2], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = UpSampling2D((2, 2))(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[1], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = UpSampling2D((2, 2))(x1)
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Convolution2D(filter_list[0], 3, 3, border_mode='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = UpSampling2D((2, 2))(x1)
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    decoded = Convolution2D(shape[2], 3, 3, border_mode='same', activation='tanh')(x1)
+
+    input_background = Input(shape=shape)
+
+    merged = merge([decoded, input_background], mode=lambda x: set_subtensor(x[1][:, start:end, start:end, :], x[0]),
+                   output_shape=lambda x: x[1])
+
+    gan_merged_model = Model(input=[input_img, input_background], output=merged)
+
+    input_img_y = Input(shape=shape)
+
+    y1 = Convolution2D(filter_list[0], 3, 3, border_mode='same', dim_ordering='tf', subsample=(2, 2))(input_img_y)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Convolution2D(filter_list[1], 3, 3, border_mode='same', subsample=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Convolution2D(filter_list[2], 3, 3, border_mode='same', subsample=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Convolution2D(filter_list[3], 3, 3, border_mode='same', subsample=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Flatten()(y1)
+    y1 = Dropout(0.5)(y1)
+    y1 = Dense(1, activation='sigmoid')(y1)
+
+    adversary_model = Model(input=input_img_y, output=y1)
+
+    return gan_merged_model, adversary_model
+
+
+def DCGAN_model_ker2(shape, filter_list, noise=True):
+    # THIS IS IN KERAS 2.0.0 API
+    rows = shape[0]
+    cols = shape[1]
+    assert (rows == cols)
+    start = int(round(rows / 4))
+    end = int(round(rows * 3 / 4))
+
+    # GENERATOR
+    input_img = Input(shape=shape)
+
+    x1 = GaussianNoise(0.05)(input_img)
+
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same', data_format='channels_last')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    # THIS IS THE MIDDLE OF THE GENERATOR (OP SHAPE HERE IS [4,4,filter_list[3])
+    x1 = GaussianNoise(0.05)(x1)
+
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2DTranspose(filters=filter_list[2], kernel_size=(3, 3), strides=2, padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2DTranspose(filters=filter_list[1], kernel_size=(3, 3), strides=2, padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2DTranspose(filters=filter_list[0], kernel_size=(3, 3), strides=2, padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    decoded = Conv2DTranspose(filters=shape[2], kernel_size=(3, 3), padding='same', activation='tanh')(x1)
+
+    input_background = Input(shape=shape)
+
+    merged = merge([decoded, input_background], mode=lambda x: set_subtensor(x[1][:, start:end, start:end, :], x[0]),
+                   output_shape=lambda x: x[1])
+
+    gan_merged_model = Model(outputs=merged, inputs=[input_img, input_background])
+
+    input_img_y = Input(shape=shape)
+
+    y1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2), data_format='channels_last')(input_img_y)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Flatten()(y1)
+    y1 = Dropout(0.5)(y1)
+    y1 = Dense(1, activation='sigmoid')(y1)
+
+    adversary_model = Model(outputs=y1, inputs=input_img_y)
+
+    return gan_merged_model, adversary_model
+
+
+def DCGAN_ker2_caption_LSTM(shape, filter_list, noise=True):
+    # THIS IS IN KERAS 2.0.0 API
+    rows = shape[0]
+    cols = shape[1]
+    assert (rows == cols)
+    start = int(round(rows / 4))
+    end = int(round(rows * 3 / 4))
+
+    # GENERATOR
+    input_img = Input(shape=shape)
+
+    x1 = GaussianNoise(0.05)(input_img)
+
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same', data_format='channels_last')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Activation('relu')(x1)
+
+    # THIS IS THE MIDDLE OF THE GENERATOR (OP SHAPE HERE IS [4,4,filter_list[3])
+    x1 = GaussianNoise(0.05)(x1)
+
+    input_caption_vector = Input(shape=(50, 300))
+    lstm_layer = LSTM(64)(input_caption_vector)
+    dense_layer = Dense(64)(lstm_layer)
+    reshaped = Reshape(target_shape=(4, 4, 4))(dense_layer)
+
+    z1 = concatenate([x1, reshaped])
+    z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+    z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+    z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.02)(z1)
+
+    z1 = Conv2D(filter_list[2], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+    z1 = Conv2D(filter_list[2], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+    z1 = Conv2DTranspose(filters=filter_list[2], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.02)(z1)
+
+    z1 = Conv2D(filter_list[1], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+    z1 = Conv2D(filter_list[1], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+    z1 = Conv2DTranspose(filters=filter_list[1], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.02)(z1)
+
+    z1 = Conv2D(filter_list[0], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+    z1 = Conv2D(filter_list[0], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+    z1 = Conv2DTranspose(filters=filter_list[0], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = Activation('relu')(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.02)(z1)
+
+    decoded = Conv2DTranspose(filters=shape[2], kernel_size=(3, 3), padding='same', activation='tanh')(z1)
+
+    input_background = Input(shape=shape)
+
+    merged = merge([decoded, input_background], mode=lambda x: set_subtensor(x[1][:, start:end, start:end, :], x[0]),
+                   output_shape=lambda x: x[1])
+
+    gan_merged_model = Model(outputs=merged, inputs=[input_img, input_caption_vector, input_background])
+
+    input_img_y = Input(shape=shape)
+
+    y1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2), data_format='channels_last')(input_img_y)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Flatten()(y1)
+    y1 = Dropout(0.5)(y1)
+    y1 = Dense(1, activation='sigmoid')(y1)
+
+    adversary_model = Model(outputs=y1, inputs=input_img_y)
+
+    return gan_merged_model, adversary_model
 
 
 objectives.loss_DSSIM_theano = loss_DSSIM_theano

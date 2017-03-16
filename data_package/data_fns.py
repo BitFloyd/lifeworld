@@ -1,8 +1,60 @@
+import cPickle as pkl
 from tempfile import mkdtemp
 
 import cv2
+import gensim
 import numpy as np
 import os
+from sklearn import decomposition
+
+
+def pca_on_vectors(path, n_rows, train_or_val='train'):
+    load_path = path + train_or_val + '_vectors_dset.npy'
+    dset = np.load(load_path)
+    dset_pca = np.zeros((dset.shape[0], n_rows, dset.shape[2]))
+
+    for i in range(0, dset_pca.shape[0]):
+        pca = decomposition.PCA(n_components=10)
+        pca.fit(dset[i].transpose())
+        x = pca.transform(dset[i].transpose()).transpose()
+        dset_pca[i] = x
+
+    save_path = path + train_or_val + '_pca_vectors_dset.npy'
+    np.save(save_path, dset_pca)
+
+
+def make_word_2_vec(path, save_path, train_or_val='train'):
+    model = gensim.models.KeyedVectors.load_word2vec_format(
+        '/usr/local/data/sejacob/lifeworld/data/inpainting/word2vec/GoogleNews-vectors-negative300.bin',
+        binary=True)
+    with open('/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/unique_words.pkl', 'rb') as f:
+        dict = pkl.load(f)
+
+    save_path = save_path + train_or_val + '_vectors_dset.npy'
+    fname = os.path.join(mkdtemp(), 'newfile.dat')
+    vectors = np.zeros((50, 300))
+
+    filelist = sorted(os.listdir(path))
+
+    dset = np.memmap(fname, dtype='float32', mode='w+',
+                     shape=(len(filelist), vectors.shape[0], vectors.shape[1]))
+
+    for i in range(0, len(filelist)):
+        key = filelist[i][:-4]
+        vectors = np.zeros((50, 300))
+        k = 0
+        for j in dict[key]:
+            try:
+                vector = model[j]
+            except KeyError:
+                continue
+            vectors[k] = vector
+            k += 1
+
+        dset[i] = vectors
+
+    np.save(save_path, dset)
+    print ("Save dataset finished")
 
 
 def save_dataset(path, save_path, train_or_val='train'):
