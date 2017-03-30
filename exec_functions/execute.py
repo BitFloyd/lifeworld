@@ -626,6 +626,7 @@ def train_for_n(dset_train, dset_middle_empty_train, adversary_model, gan_merged
 
         dset_max, dset_real_false = shuffle(dset_max, dset_real_false)
 
+        # discriminator training
         model_zoo.make_trainable(adversary_model, True)
         adversary_loss = adversary_model.train_on_batch(dset_max, dset_real_false)
 
@@ -634,10 +635,12 @@ def train_for_n(dset_train, dset_middle_empty_train, adversary_model, gan_merged
 
         model_zoo.make_trainable(adversary_model, False)
 
+        # corrupt labels for generator training also, low_prob.
         generator_labels = np.random.rand(middle_empty_train_batch.shape[0], 1) * 0.5 + 0.7
         rand_index_label_corrupt = np.random.randint(0, middle_empty_train_batch.shape[0], corrupt)
         generator_labels[rand_index_label_corrupt] = np.random.rand(len(rand_index_label_corrupt), 1) * 0.3
 
+        # generator training
         g_loss = full_model.train_on_batch([middle_empty_train_batch, middle_empty_train_batch],
                                            generator_labels)
         losses["g"].append(g_loss[0])
@@ -666,7 +669,7 @@ def train_for_n(dset_train, dset_middle_empty_train, adversary_model, gan_merged
             data_fns.write_predicted(train_batch, middle_empty_train_batch, predictions, write_path, middle_only=False)
 
 
-def GAN_slow_converge(num_runs=10, n_epoch=50, batch_norm=False):
+def GAN_slow_converge(num_runs=10, n_epoch=1, batch_norm=False):
     # Get data as numpy mem-map to not overload the RAM
     plt.ioff()
     print "GET_DATASETS"
@@ -791,7 +794,7 @@ def GAN_slow_converge(num_runs=10, n_epoch=50, batch_norm=False):
     print "FINISHED ALL RUNS"
 
 
-def DCGAN_slow_converge(num_runs=10, n_epoch=50):
+def DCGAN_slow_converge(num_runs=10, n_epoch=1):
     # Get data as numpy mem-map to not overload the RAM
     plt.ioff()
     print "GET_DATASETS"
@@ -934,18 +937,20 @@ def DCGAN_slow_converge(num_runs=10, n_epoch=50):
 def train_for_n_captions(dset_train, dset_middle_empty_train, train_captions, adversary_model, gan_merged_model,
                          full_model, losses,
                          losses_per_frq,
-                         nb_epoch=50000, plt_frq=100, batch_size=50, predict_frq=1000, run_num=10, m_train=False):
+                         nb_epoch=50000, plt_frq=100, batch_size=50, predict_frq=1000, run_num=10, m_train=False,
+                         cp=0.1):
+    rand_disc_train = np.random.randint(0, nb_epoch, size=int(0.01 * nb_epoch))
     for e in tqdm(range(nb_epoch)):
-
-        corrupt = int(0.1 * batch_size)
+        corrupt = int(cp * batch_size)
         rand_index = np.random.randint(0, dset_train.shape[0], size=batch_size)
         train_batch = dset_train[rand_index]
         middle_empty_train_batch = dset_middle_empty_train[rand_index]
         rand_caption_idx = np.random.randint(0, train_captions.shape[1], len(rand_index))
         captions_train_batch = train_captions[rand_index, rand_caption_idx]
 
-        predictions = gan_merged_model.predict([middle_empty_train_batch, middle_empty_train_batch],
-                                               batch_size=batch_size, verbose=False)
+        predictions = gan_merged_model.predict(
+            [middle_empty_train_batch, captions_train_batch, middle_empty_train_batch],
+            batch_size=batch_size, verbose=False)
 
         dset_max = np.vstack((train_batch, predictions))
 
@@ -974,6 +979,12 @@ def train_for_n_captions(dset_train, dset_middle_empty_train, train_captions, ad
 
         model_zoo.make_trainable(adversary_model, False)
 
+        if e in rand_disc_train:
+            # randomly train discriminator more twice for stability
+            losses["g"].append(losses["g"][-1])
+            losses["m"].append(losses["m"][-1])
+            continue
+
         generator_labels = np.random.rand(middle_empty_train_batch.shape[0], 1) * 0.5 + 0.7
         rand_index_label_corrupt = np.random.randint(0, middle_empty_train_batch.shape[0], corrupt)
         generator_labels[rand_index_label_corrupt] = np.random.rand(len(rand_index_label_corrupt), 1) * 0.3
@@ -1000,7 +1011,7 @@ def train_for_n_captions(dset_train, dset_middle_empty_train, train_captions, ad
         if e % predict_frq == predict_frq - 1:
             predictions = gan_merged_model.predict(
                 [middle_empty_train_batch, captions_train_batch, middle_empty_train_batch], batch_size=100)
-            write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp06_dcgan_caption_run_train_batch' + \
+            write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp07_dcgan_caption_run_train_batch' + \
                          str(run_num + 1).zfill(2) + '_' + str(e) + '/'
 
             if not os.path.exists(write_path):
@@ -1008,7 +1019,7 @@ def train_for_n_captions(dset_train, dset_middle_empty_train, train_captions, ad
             data_fns.write_predicted(train_batch, middle_empty_train_batch, predictions, write_path, middle_only=False)
 
 
-def DCGAN_avec_captions_slow_converge(num_runs=10, n_epoch=50):
+def DCGAN_avec_captions_slow_converge(num_runs=10, n_epoch=1):
     # Get data as numpy mem-map to not overload the RAM
     plt.ioff()
     print "GET_DATASETS"
@@ -1038,10 +1049,10 @@ def DCGAN_avec_captions_slow_converge(num_runs=10, n_epoch=50):
     dset_middle_val_p = np.load('/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/dset_middle_val_p.npy')
 
     for i in range(0, len(dset_middle_empty_train)):
-        dset_middle_empty_train[i][start:end, start:end, :] = dset_middle_train_p[i]
+        dset_middle_empty_train[i][start:end, start:end, :] = dset_middle_train_p[i] * 2.0 - 1
         # dset_middle_empty_train[i][start:end, start:end, :] = np.random.rand(32,32,3)*2.0 - 1
     for i in range(0, len(dset_middle_empty_val)):
-        dset_middle_empty_val[i][start:end, start:end, :] = dset_middle_val_p[i]
+        dset_middle_empty_val[i][start:end, start:end, :] = dset_middle_val_p[i] * 2.0 - 1
         # dset_middle_empty_val[i][start:end, start:end, :] = np.random.rand(32, 32, 3) * 2.0 - 1
 
     print "DELETE SCRAP DATASETS"
@@ -1051,11 +1062,13 @@ def DCGAN_avec_captions_slow_converge(num_runs=10, n_epoch=50):
     print "##################"
     print "GET CAPTIONS"
     print "##################"
-    train_captions = np.load('/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/all_words_2_vectors_train.npy')
-    val_captions = np.load('/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/all_words_2_vectors_val.npy')
+    train_captions = np.load('/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/all_words_2_vectors_train.npy',
+                             mmap_mode='r+')
+    val_captions = np.load('/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/all_words_2_vectors_val.npy',
+                           mmap_mode='r+')
 
     print "GET GAN MODEL"
-    gan_merged_model, adversary_model = model_zoo.DCGAN_model_ker2(shape_img, [128, 256, 512, 1024], noise=True)
+    gan_merged_model, adversary_model = model_zoo.DCGAN_ker2_caption_LSTM(shape_img, [128, 256, 512, 1024], noise=True)
 
     losses = {"d": [], "g": [], "m": []}
     losses_per_frq = {"d": [], "g": [], "m": []}
@@ -1066,7 +1079,7 @@ def DCGAN_avec_captions_slow_converge(num_runs=10, n_epoch=50):
     print "COMPILE GAN MERGED MODEL"
     # The loss is reduced so as to not completely constrain the filters to overfit to the training data
     model_zoo.alpha = 0.3 / 4  # SSIM and MSE loss
-    model_zoo.beta = 0.07 / 4  # MSE loss kept higher to avoid patchy reconstructions
+    model_zoo.beta = 0.7 / 4  # MSE loss kept higher to avoid patchy reconstructions
 
     gan_merged_model.compile(optimizer=adam, loss=model_zoo.loss_DSSIM_theano)
     gan_merged_model.summary()
@@ -1090,19 +1103,19 @@ def DCGAN_avec_captions_slow_converge(num_runs=10, n_epoch=50):
     dset_real_false[0:dset_train.shape[0]] = 1
     dset_max, dset_real_false = shuffle(dset_max, dset_real_false)
 
-    # print "Start Adversary Training INITIAL"
-    # model_zoo.make_trainable(adversary_model, True)
-    # adversary_model.summary()
-    #
-    # print "#########################"
-    # print "Start ADVERSARY Fit INITIAL"
-    # print "#########################"
-    #
-    # adversary_model.fit(dset_max, dset_real_false,
-    #                     batch_size=100,
-    #                     nb_epoch=n_epoch,
-    #                     shuffle=True,
-    #                     verbose=True)
+    print "Start Adversary Training INITIAL"
+    model_zoo.make_trainable(adversary_model, True)
+    adversary_model.summary()
+
+    print "#########################"
+    print "Start ADVERSARY Fit INITIAL"
+    print "#########################"
+
+    adversary_model.fit(dset_max, dset_real_false,
+                        batch_size=100,
+                        nb_epoch=n_epoch,
+                        shuffle=True,
+                        verbose=True)
 
     del (dset_max)
     del (dset_real_false)
@@ -1114,33 +1127,38 @@ def DCGAN_avec_captions_slow_converge(num_runs=10, n_epoch=50):
         print "###########################"
         print i + 1
         print "###########################"
+        cp = 0.15 - 0.01 * (i)
+
+        if (cp < 0.0):
+            cp = 0.0
 
         train_for_n_captions(dset_train,
                              dset_middle_empty_train,
+                             train_captions,
                              adversary_model,
                              gan_merged_model,
                              full_model,
-                             train_captions,
                              losses,
                              losses_per_frq,
                              nb_epoch=6000,
                              plt_frq=100,
                              batch_size=64,
                              predict_frq=1000,
-                             run_num=i, m_train=True)
+                             run_num=i, m_train=True,
+                             cp=cp)
 
         print "#########################"
         print "MAKE PREDICTIONS TRAIN"
         print "#########################"
         captions = np.zeros((train_captions.shape[0], train_captions.shape[2], train_captions.shape[3]))
-        for i in range(0, len(train_captions)):
-            captions[i] = train_captions[i, np.random.randint(0, train_captions.shape[1], 1)]
+        for j in range(0, len(train_captions)):
+            captions[j] = train_captions[j, np.random.randint(0, train_captions.shape[1], 1)]
 
         predictions = gan_merged_model.predict([dset_middle_empty_train, captions, dset_middle_empty_train],
                                                batch_size=100)
 
         print "SAVE IMAGES"
-        write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp06_dcgan_run_train' + \
+        write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp06_dcgan_captions_run_train' + \
                      str(i + 1).zfill(2) + '/'
 
         if not os.path.exists(write_path):
@@ -1151,12 +1169,12 @@ def DCGAN_avec_captions_slow_converge(num_runs=10, n_epoch=50):
         print "MAKE PREDICTIONS TEST"
         print "#########################"
         captions = np.zeros((val_captions.shape[0], val_captions.shape[2], val_captions.shape[3]))
-        for i in range(0, len(val_captions)):
-            captions[i] = val_captions[i, np.random.randint(0, val_captions.shape[1], 1)]
+        for j in range(0, len(val_captions)):
+            captions[j] = val_captions[j, np.random.randint(0, val_captions.shape[1], 1)]
         predictions = gan_merged_model.predict([dset_middle_empty_val, captions, dset_middle_empty_val], batch_size=100)
 
         print "SAVE IMAGES"
-        write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp05_dcgan_run_test' + \
+        write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp06_dcgan_captions_run_test' + \
                      str(i + 1).zfill(2) + '/'
 
         if not os.path.exists(write_path):
@@ -1166,5 +1184,204 @@ def DCGAN_avec_captions_slow_converge(num_runs=10, n_epoch=50):
         del (captions)
         del (predictions)
         full_model.save_weights(model_weights)
+        full_model.save('/usr/local/data/sejacob/lifeworld/data/inpainting/models/caption_full_model.h5')
 
     print "FINISHED ALL RUNS"
+
+
+def DCGAN_avec_captions_slow_converge_avec_inception(num_runs=10, n_epoch=1):
+    # Get data as numpy mem-map to not overload the RAM
+    plt.ioff()
+    print "GET_DATASETS"
+    save_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/'
+    dset_train, dset_middle_train, dset_middle_empty_train = data_fns.get_datasets(save_path, 'train')
+    dset_val, dset_middle_val, dset_middle_empty_val = data_fns.get_datasets(save_path, 'val')
+
+    del (dset_middle_val)
+    del (dset_middle_train)
+
+    shape_img = dset_train[0].shape
+    rows = shape_img[0]
+    cols = shape_img[1]
+    assert (rows == cols)
+    start = int(round(rows / 4))
+    end = int(round(rows * 3 / 4))
+
+    # EXPERIMENT 7
+    # --------------
+    # DC-GAN WITH ALL THE GAN-HACKS and inception modules for inpainting
+    # Deconvolutions instead of upsampling
+    # Takes captions as well.
+    # For each batch training, any 1 out of the 5 captions are passed
+    # For prediction, any of the captions may be used.
+
+    dset_middle_train_p = np.load('/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/dset_middle_train_p.npy')
+    dset_middle_val_p = np.load('/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/dset_middle_val_p.npy')
+
+    for i in range(0, len(dset_middle_empty_train)):
+        dset_middle_empty_train[i][start:end, start:end, :] = dset_middle_train_p[i] * 2.0 - 1
+        # dset_middle_empty_train[i][start:end, start:end, :] = np.random.rand(32,32,3)*2.0 - 1
+    for i in range(0, len(dset_middle_empty_val)):
+        dset_middle_empty_val[i][start:end, start:end, :] = dset_middle_val_p[i] * 2.0 - 1
+        # dset_middle_empty_val[i][start:end, start:end, :] = np.random.rand(32, 32, 3) * 2.0 - 1
+
+    print "DELETE SCRAP DATASETS"
+    del (dset_middle_train_p)
+    del (dset_middle_val_p)
+
+    print "##################"
+    print "GET CAPTIONS"
+    print "##################"
+    train_captions = np.load('/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/all_words_2_vectors_train.npy',
+                             mmap_mode='r+')
+    val_captions = np.load('/usr/local/data/sejacob/lifeworld/data/inpainting/pkls/all_words_2_vectors_val.npy',
+                           mmap_mode='r+')
+
+    print "GET GAN MODEL"
+    gan_merged_model, adversary_model = model_zoo.DC_caption_LSTM_inception_exact(shape_img,
+                                                                                  [128, 256, 512, 1024],
+                                                                                  noise=True)
+
+    losses = {"d": [], "g": [], "m": []}
+    losses_per_frq = {"d": [], "g": [], "m": []}
+
+    sgd = model_zoo.SGD(lr=0.0002, momentum=0.5, nesterov=True)
+    adam = model_zoo.Adam(lr=0.0002, beta_1=0.5, beta_2=0.9, epsilon=1e-8, decay=0.0)
+
+    print "COMPILE GAN MERGED MODEL"
+    # The loss is reduced so as to not completely constrain the filters to overfit to the training data
+    model_zoo.alpha = 0.2 / 10  # SSIM and MSE loss
+    model_zoo.beta = 0.8 / 10  # MSE loss kept higher to avoid patchy reconstructions
+
+    gan_merged_model.compile(optimizer=adam, loss=model_zoo.loss_DSSIM_theano)
+    gan_merged_model.summary()
+    print "####################################"
+
+    print "COMPILE ADVERSARY MODEL"
+    adversary_model.compile(optimizer=sgd, loss='binary_crossentropy', metrics=['binary_accuracy'])
+    adversary_model.summary()
+    print "####################################"
+
+    print "COMPILE FULL MODEL"
+    full_model_tensor = adversary_model(gan_merged_model.output)
+    full_model = model_zoo.Model(outputs=full_model_tensor, inputs=gan_merged_model.input)
+    full_model.compile(optimizer=adam, loss='binary_crossentropy', metrics=['binary_accuracy'])
+    full_model.summary()
+    model_weights = '/usr/local/data/sejacob/lifeworld/data/inpainting/models/full_model_weights.h5'
+    print "####################################"
+
+    dset_max = np.vstack((dset_train, dset_middle_empty_train))
+    dset_real_false = np.zeros(((dset_middle_empty_train.shape[0] + dset_train.shape[0]), 1))
+    dset_real_false[0:dset_train.shape[0]] = 1
+    dset_max, dset_real_false = shuffle(dset_max, dset_real_false)
+
+    print "Start Adversary Training INITIAL"
+    model_zoo.make_trainable(adversary_model, True)
+    adversary_model.summary()
+
+    print "#########################"
+    print "Start ADVERSARY Fit INITIAL"
+    print "#########################"
+
+    adversary_model.fit(dset_max, dset_real_false,
+                        batch_size=100,
+                        nb_epoch=n_epoch,
+                        shuffle=True,
+                        verbose=True)
+
+    del (dset_max)
+    del (dset_real_false)
+
+    print "START SLOW CONVERGE BATCH TRAINING"
+
+    for i in range(0, num_runs):
+
+        print "###########################"
+        print i + 1
+        print "###########################"
+        cp = 0.15 - 0.01 * (i)
+
+        if (cp < 0.0):
+            cp = 0.0
+
+        train_for_n_captions(dset_train,
+                             dset_middle_empty_train,
+                             train_captions,
+                             adversary_model,
+                             gan_merged_model,
+                             full_model,
+                             losses,
+                             losses_per_frq,
+                             nb_epoch=6000,
+                             plt_frq=100,
+                             batch_size=64,
+                             predict_frq=1000,
+                             run_num=i, m_train=True,
+                             cp=cp)
+
+
+
+        print "#########################"
+        print "MAKE PREDICTIONS TRAIN"
+        print "#########################"
+        captions = np.zeros((train_captions.shape[0], train_captions.shape[2], train_captions.shape[3]))
+        for j in range(0, len(train_captions)):
+            captions[j] = train_captions[j, np.random.randint(0, train_captions.shape[1], 1)]
+
+        predictions = gan_merged_model.predict([dset_middle_empty_train, captions, dset_middle_empty_train],
+                                               batch_size=100)
+
+        # Strengthen adversary to stabilize.
+        strengthen_adversary(dset_train, predictions, adversary_model, n_epoch=round(cp + 0.01(i)))
+
+        print "SAVE IMAGES"
+        write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp07_dcgan_captions_run_train' + \
+                     str(i + 1).zfill(2) + '/'
+
+        if not os.path.exists(write_path):
+            os.makedirs(write_path)
+        data_fns.write_predicted(dset_train, dset_middle_empty_train, predictions, write_path, middle_only=False)
+
+        print "#########################"
+        print "MAKE PREDICTIONS TEST"
+        print "#########################"
+        captions = np.zeros((val_captions.shape[0], val_captions.shape[2], val_captions.shape[3]))
+        for j in range(0, len(val_captions)):
+            captions[j] = val_captions[j, np.random.randint(0, val_captions.shape[1], 1)]
+        predictions = gan_merged_model.predict([dset_middle_empty_val, captions, dset_middle_empty_val], batch_size=100)
+
+
+        print "SAVE IMAGES"
+        write_path = '/usr/local/data/sejacob/lifeworld/data/inpainting/predictions/exp07_dcgan_captions_run_test' + \
+                     str(i + 1).zfill(2) + '/'
+
+        if not os.path.exists(write_path):
+            os.makedirs(write_path)
+        data_fns.write_predicted(dset_val, dset_middle_empty_val, predictions, write_path, middle_only=False)
+
+        del (captions)
+        del (predictions)
+        full_model.save_weights(model_weights)
+        full_model.save('/usr/local/data/sejacob/lifeworld/data/inpainting/models/caption_full_model_inception.h5')
+
+    print "FINISHED ALL RUNS"
+
+
+def strengthen_adversary(dset_train, predictions, adversary_model, n_epoch=1):
+    dset_max = np.vstack((dset_train, predictions))
+    dset_real_false = np.zeros(((predictions.shape[0] + dset_train.shape[0]), 1))
+    dset_real_false[0:dset_train.shape[0]] = 1
+    dset_max, dset_real_false = shuffle(dset_max, dset_real_false)
+
+    print "Start Adversary Training INITIAL"
+    model_zoo.make_trainable(adversary_model, True)
+
+    print "#########################"
+    print "Start ADVERSARY WORKOUT Fit "
+    print "#########################"
+
+    adversary_model.fit(dset_max, dset_real_false,
+                        batch_size=100,
+                        nb_epoch=n_epoch,
+                        shuffle=True,
+                        verbose=True)

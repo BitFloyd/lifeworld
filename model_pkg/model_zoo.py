@@ -915,52 +915,52 @@ def DCGAN_ker2_caption_LSTM(shape, filter_list, noise=True):
 
     x1 = Conv2D(filter_list[0], (3, 3), padding='same', data_format='channels_last')(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
     x1 = Conv2D(filter_list[0], (3, 3), padding='same')(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
     x1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2))(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
 
     if (noise):
         x1 = GaussianNoise(0.02)(x1)
 
     x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
     x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
     x1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
 
     if (noise):
         x1 = GaussianNoise(0.02)(x1)
 
     x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
     x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
     x1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
 
     if (noise):
         x1 = GaussianNoise(0.02)(x1)
 
     x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
     x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
     x1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(x1)
     x1 = BatchNormalization()(x1)
-    x1 = Activation('relu')(x1)
+    x1 = LeakyReLU(0.2)(x1)
 
     # THIS IS THE MIDDLE OF THE GENERATOR (OP SHAPE HERE IS [4,4,filter_list[3])
     x1 = GaussianNoise(0.05)(x1)
@@ -973,57 +973,266 @@ def DCGAN_ker2_caption_LSTM(shape, filter_list, noise=True):
     z1 = concatenate([x1, reshaped])
     z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
     z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
     z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
 
     if (noise):
         z1 = GaussianNoise(0.02)(z1)
 
     z1 = Conv2D(filter_list[2], (3, 3), padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
     z1 = Conv2D(filter_list[2], (3, 3), padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
     z1 = Conv2DTranspose(filters=filter_list[2], kernel_size=(3, 3), strides=2, padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
 
     if (noise):
         z1 = GaussianNoise(0.02)(z1)
 
     z1 = Conv2D(filter_list[1], (3, 3), padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
     z1 = Conv2D(filter_list[1], (3, 3), padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
     z1 = Conv2DTranspose(filters=filter_list[1], kernel_size=(3, 3), strides=2, padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
 
     if (noise):
-        z1 = GaussianNoise(0.02)(z1)
+        z1 = GaussianNoise(0.01)(z1)
 
     z1 = Conv2D(filter_list[0], (3, 3), padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
     z1 = Conv2D(filter_list[0], (3, 3), padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
     z1 = Conv2DTranspose(filters=filter_list[0], kernel_size=(3, 3), strides=2, padding='same')(z1)
     z1 = BatchNormalization()(z1)
-    z1 = Activation('relu')(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.01)(z1)
+
+    decoded = Conv2DTranspose(filters=shape[2], kernel_size=(3, 3), padding='same', activation='tanh')(z1)
+    decoded_clarity = Conv2D(filters=shape[2], kernel_size=(1, 1), padding='same', activation='tanh')(decoded)
+
+    input_background = Input(shape=shape)
+
+    merged = merge([decoded_clarity, input_background],
+                   mode=lambda x: set_subtensor(x[1][:, start:end, start:end, :], x[0]),
+                   output_shape=lambda x: x[1])
+
+    gan_merged_model = Model(outputs=merged, inputs=[input_img, input_caption_vector, input_background])
+
+    input_img_y = Input(shape=shape)
+
+    y1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2), data_format='channels_last')(input_img_y)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Flatten()(y1)
+    y1 = Dropout(0.5)(y1)
+    y1 = Dense(1, activation='sigmoid')(y1)
+
+    adversary_model = Model(outputs=y1, inputs=input_img_y)
+
+    return gan_merged_model, adversary_model
+
+
+def DCGAN_ker2_caption_LSTM_inception(shape, filter_list, noise=True):
+    # THIS IS IN KERAS 2.0.0 API
+    rows = shape[0]
+    cols = shape[1]
+    assert (rows == cols)
+    start = int(round(rows / 4))
+    end = int(round(rows * 3 / 4))
+
+    # GENERATOR
+    input_img = Input(shape=shape)
+
+    x1 = GaussianNoise(0.05)(input_img)
+
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same', data_format='channels_last')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    # THIS IS THE MIDDLE OF THE GENERATOR (OP SHAPE HERE IS [4,4,filter_list[3])
+    x1 = GaussianNoise(0.05)(x1)
+
+    input_caption_vector = Input(shape=(50, 300))
+    lstm_layer = LSTM(64)(input_caption_vector)
+    dense_layer = Dense(64)(lstm_layer)
+    dense_layer_with_noise = GaussianNoise(0.01)(dense_layer)
+    reshaped = Reshape(target_shape=(4, 4, 4))(dense_layer_with_noise)
+
+    z1 = concatenate([x1, reshaped])
+    z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
 
     if (noise):
         z1 = GaussianNoise(0.02)(z1)
 
-    decoded = Conv2DTranspose(filters=shape[2], kernel_size=(3, 3), padding='same', activation='tanh')(z1)
+    z1 = Conv2D(filter_list[2], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[2], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2DTranspose(filters=filter_list[2], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.02)(z1)
+
+    z1 = Conv2D(filter_list[1], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[1], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2DTranspose(filters=filter_list[1], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.01)(z1)
+
+    z1 = Conv2D(filter_list[0], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[0], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2DTranspose(filters=filter_list[0], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.01)(z1)
+
+    # Start adding inception Layers (z1->1*1 filters, 3*3 filters, 2*2 filters)
+
+    # Inception 1
+    inception1_1x1 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(1, 1), padding='same')(z1)
+    inception1_1x1 = BatchNormalization()(inception1_1x1)
+    inception1_1x1_activate = LeakyReLU(0.2)(inception1_1x1)
+    inception1_2x2 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(2, 2), padding='same')(z1)
+    inception1_2x2 = BatchNormalization()(inception1_2x2)
+    inception1_2x2_activate = LeakyReLU(0.2)(inception1_2x2)
+    inception1_3x3 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(3, 3), padding='same')(z1)
+    inception1_3x3 = BatchNormalization()(inception1_3x3)
+    inception1_3x3_activate = LeakyReLU(0.2)(inception1_3x3)
+    inception1_out = concatenate([inception1_1x1_activate, inception1_2x2_activate, inception1_3x3_activate])
+
+    if (noise):
+        inception1_out = GaussianNoise(0.01)(inception1_out)
+
+    # Inception 2
+    inception2_1x1 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(1, 1), padding='same')(inception1_out)
+    inception2_1x1 = BatchNormalization()(inception2_1x1)
+    inception2_1x1_activate = LeakyReLU(0.2)(inception2_1x1)
+    inception2_2x2 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(2, 2), padding='same')(inception1_out)
+    inception2_2x2 = BatchNormalization()(inception2_2x2)
+    inception2_2x2_activate = LeakyReLU(0.2)(inception2_2x2)
+    inception2_3x3 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(3, 3), padding='same')(inception1_out)
+    inception2_3x3 = BatchNormalization()(inception2_3x3)
+    inception2_3x3_activate = LeakyReLU(0.2)(inception2_3x3)
+    inception2_out = concatenate([inception2_1x1_activate, inception2_2x2_activate, inception2_3x3_activate])
+
+    if (noise):
+        inception2_out = GaussianNoise(0.01)(inception2_out)
+
+    # Inception 3
+    inception3_1x1 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(1, 1), padding='same')(inception2_out)
+    inception3_1x1 = BatchNormalization()(inception3_1x1)
+    inception3_1x1_activate = LeakyReLU(0.2)(inception3_1x1)
+    inception3_2x2 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(2, 2), padding='same')(inception2_out)
+    inception3_2x2 = BatchNormalization()(inception3_2x2)
+    inception3_2x2_activate = LeakyReLU(0.2)(inception3_2x2)
+    inception3_3x3 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(3, 3), padding='same')(inception2_out)
+    inception3_3x3 = BatchNormalization()(inception3_3x3)
+    inception3_3x3_activate = LeakyReLU(0.2)(inception3_3x3)
+    inception3_out = concatenate([inception3_1x1_activate, inception3_2x2_activate, inception3_3x3_activate])
+
+    if (noise):
+        inception3_out = GaussianNoise(0.01)(inception3_out)
+
+    decoded = Conv2DTranspose(filters=shape[2], kernel_size=(3, 3), padding='same', activation='tanh')(inception3_out)
 
     input_background = Input(shape=shape)
 
@@ -1058,5 +1267,430 @@ def DCGAN_ker2_caption_LSTM(shape, filter_list, noise=True):
 
     return gan_merged_model, adversary_model
 
+
+def DCGAN_ker2_caption_LSTM_inception_latent(shape, filter_list, noise=True):
+    # THIS IS IN KERAS 2.0.0 API
+    rows = shape[0]
+    cols = shape[1]
+    assert (rows == cols)
+    start = int(round(rows / 4))
+    end = int(round(rows * 3 / 4))
+
+    # GENERATOR
+    input_img = Input(shape=shape)
+
+    x1 = GaussianNoise(0.05)(input_img)
+
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same', data_format='channels_last')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    # THIS IS THE MIDDLE OF THE GENERATOR (OP SHAPE HERE IS [4,4,filter_list[3])
+    x1 = Flatten()(x1)
+    x1 = GaussianNoise(0.05)(x1)
+    x1 = Dense(512, activation='sigmoid')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Dense(512, activation='sigmoid')(x1)
+    x1 = BatchNormalization()(x1)
+
+    input_caption_vector = Input(shape=(50, 300))
+    lstm_layer = LSTM(128)(input_caption_vector)
+    dense_layer = Dense(128, activation='sigmoid')(lstm_layer)
+    dense_layer = BatchNormalization()(dense_layer)
+
+    dense_layer_with_noise = GaussianNoise(0.01)(dense_layer)
+
+    z1 = concatenate([x1, dense_layer_with_noise])  # Latent variables of shape (192,1)
+
+    z1 = Reshape(target_shape=(4, 4, 40))(z1)
+
+    # Start of reconstruction point.
+    z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[3], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.02)(z1)
+
+    z1 = Conv2D(filter_list[2], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[2], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2DTranspose(filters=filter_list[2], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.02)(z1)
+
+    z1 = Conv2D(filter_list[1], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[1], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2DTranspose(filters=filter_list[1], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.01)(z1)
+
+    z1 = Conv2D(filter_list[0], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[0], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2DTranspose(filters=filter_list[0], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.01)(z1)
+
+    # Start adding inception Layers (z1->1*1 filters, 3*3 filters, 2*2 filters)
+
+    # Inception 1
+    inception1_1x1 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(1, 1), padding='same')(z1)
+    inception1_1x1 = BatchNormalization()(inception1_1x1)
+    inception1_1x1_activate = LeakyReLU(0.2)(inception1_1x1)
+    inception1_2x2 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(2, 2), padding='same')(z1)
+    inception1_2x2 = BatchNormalization()(inception1_2x2)
+    inception1_2x2_activate = LeakyReLU(0.2)(inception1_2x2)
+    inception1_3x3 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(3, 3), padding='same')(z1)
+    inception1_3x3 = BatchNormalization()(inception1_3x3)
+    inception1_3x3_activate = LeakyReLU(0.2)(inception1_3x3)
+    inception1_out = concatenate([inception1_1x1_activate, inception1_2x2_activate, inception1_3x3_activate])
+
+    if (noise):
+        inception1_out = GaussianNoise(0.01)(inception1_out)
+
+    # Inception 2
+    inception2_1x1 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(1, 1), padding='same')(inception1_out)
+    inception2_1x1 = BatchNormalization()(inception2_1x1)
+    inception2_1x1_activate = LeakyReLU(0.2)(inception2_1x1)
+    inception2_2x2 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(2, 2), padding='same')(inception1_out)
+    inception2_2x2 = BatchNormalization()(inception2_2x2)
+    inception2_2x2_activate = LeakyReLU(0.2)(inception2_2x2)
+    inception2_3x3 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(3, 3), padding='same')(inception1_out)
+    inception2_3x3 = BatchNormalization()(inception2_3x3)
+    inception2_3x3_activate = LeakyReLU(0.2)(inception2_3x3)
+    inception2_out = concatenate([inception2_1x1_activate, inception2_2x2_activate, inception2_3x3_activate])
+
+    if (noise):
+        inception2_out = GaussianNoise(0.01)(inception2_out)
+
+    # Inception 3
+    inception3_1x1 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(1, 1), padding='same')(inception2_out)
+    inception3_1x1 = BatchNormalization()(inception3_1x1)
+    inception3_1x1_activate = LeakyReLU(0.2)(inception3_1x1)
+    inception3_2x2 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(2, 2), padding='same')(inception2_out)
+    inception3_2x2 = BatchNormalization()(inception3_2x2)
+    inception3_2x2_activate = LeakyReLU(0.2)(inception3_2x2)
+    inception3_3x3 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(3, 3), padding='same')(inception2_out)
+    inception3_3x3 = BatchNormalization()(inception3_3x3)
+    inception3_3x3_activate = LeakyReLU(0.2)(inception3_3x3)
+    inception3_out = concatenate([inception3_1x1_activate, inception3_2x2_activate, inception3_3x3_activate])
+
+    if (noise):
+        inception3_out = GaussianNoise(0.01)(inception3_out)
+
+    decoded = Conv2DTranspose(filters=shape[2], kernel_size=(3, 3), padding='same', activation='tanh')(inception3_out)
+
+    input_background = Input(shape=shape)
+
+    merged = merge([decoded, input_background], mode=lambda x: set_subtensor(x[1][:, start:end, start:end, :], x[0]),
+                   output_shape=lambda x: x[1])
+
+    gan_merged_model = Model(outputs=merged, inputs=[input_img, input_caption_vector, input_background])
+
+    input_img_y = Input(shape=shape)
+
+    y1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2), data_format='channels_last')(input_img_y)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Flatten()(y1)
+    y1 = Dropout(0.5)(y1)
+    y1 = Dense(1, activation='sigmoid')(y1)
+
+    adversary_model = Model(outputs=y1, inputs=input_img_y)
+
+    return gan_merged_model, adversary_model
+
+
+def DC_caption_LSTM_inception_exact(shape, filter_list, noise=True):
+    # THIS IS IN KERAS 2.0.0 API
+    rows = shape[0]
+    cols = shape[1]
+    assert (rows == cols)
+    start = int(round(rows / 4))
+    end = int(round(rows * 3 / 4))
+
+    # GENERATOR
+    input_img = Input(shape=shape)
+
+    x1 = GaussianNoise(0.05)(input_img)
+
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same', data_format='channels_last')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    if (noise):
+        x1 = GaussianNoise(0.02)(x1)
+
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+    x1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = LeakyReLU(0.2)(x1)
+
+    # THIS IS THE MIDDLE OF THE GENERATOR (OP SHAPE HERE IS [4,4,filter_list[3])
+    x1 = Flatten()(x1)
+    x1 = GaussianNoise(0.05)(x1)
+    x1 = Dense(512, activation='sigmoid')(x1)
+    x1 = BatchNormalization()(x1)
+    x1 = Dense(512, activation='sigmoid')(x1)
+    x1 = BatchNormalization()(x1)
+
+    input_caption_vector = Input(shape=(50, 300))
+    lstm_layer = LSTM(128)(input_caption_vector)
+    dense_layer = Dense(128, activation='sigmoid')(lstm_layer)
+    dense_layer = BatchNormalization()(dense_layer)
+
+    dense_layer_with_noise = GaussianNoise(0.01)(dense_layer)
+
+    z1 = concatenate([x1, dense_layer_with_noise])  # Latent variables of shape (192,1)
+    z1 = Dense(int(filter_list[3] * 4 * 4), activation='sigmoid')(z1)
+    z1 = BatchNormalization()(z1)
+
+    z1 = Reshape(target_shape=(4, 4, filter_list[3]))(z1)
+
+    # Start of reconstruction point.
+    if (noise):
+        z1 = GaussianNoise(0.02)(z1)
+
+    z1 = Conv2D(filter_list[2], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[2], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2DTranspose(filters=filter_list[2], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.02)(z1)
+
+    z1 = Conv2D(filter_list[1], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[1], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2DTranspose(filters=filter_list[1], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.01)(z1)
+
+    z1 = Conv2D(filter_list[0], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2D(filter_list[0], (3, 3), padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+    z1 = Conv2DTranspose(filters=filter_list[0], kernel_size=(3, 3), strides=2, padding='same')(z1)
+    z1 = BatchNormalization()(z1)
+    z1 = LeakyReLU(0.2)(z1)
+
+    if (noise):
+        z1 = GaussianNoise(0.01)(z1)
+
+    # Start adding inception Layers (z1->1*1 filters, 3*3 filters, 2*2 filters)
+
+    # Inception 1
+    inception1_1x1 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(1, 1), padding='same')(z1)
+    inception1_1x1 = BatchNormalization()(inception1_1x1)
+    inception1_1x1_activate = LeakyReLU(0.2)(inception1_1x1)
+    inception1_2x2 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(2, 2), padding='same')(z1)
+    inception1_2x2 = BatchNormalization()(inception1_2x2)
+    inception1_2x2_activate = LeakyReLU(0.2)(inception1_2x2)
+    inception1_3x3 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(3, 3), padding='same')(z1)
+    inception1_3x3 = BatchNormalization()(inception1_3x3)
+    inception1_3x3_activate = LeakyReLU(0.2)(inception1_3x3)
+    inception1_out = concatenate([inception1_1x1_activate, inception1_2x2_activate, inception1_3x3_activate])
+
+    if (noise):
+        inception1_out = GaussianNoise(0.01)(inception1_out)
+
+    # Inception 2
+    inception2_1x1 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(1, 1), padding='same')(inception1_out)
+    inception2_1x1 = BatchNormalization()(inception2_1x1)
+    inception2_1x1_activate = LeakyReLU(0.2)(inception2_1x1)
+    inception2_2x2 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(2, 2), padding='same')(inception1_out)
+    inception2_2x2 = BatchNormalization()(inception2_2x2)
+    inception2_2x2_activate = LeakyReLU(0.2)(inception2_2x2)
+    inception2_3x3 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(3, 3), padding='same')(inception1_out)
+    inception2_3x3 = BatchNormalization()(inception2_3x3)
+    inception2_3x3_activate = LeakyReLU(0.2)(inception2_3x3)
+    inception2_out = concatenate([inception2_1x1_activate, inception2_2x2_activate, inception2_3x3_activate])
+
+    if (noise):
+        inception2_out = GaussianNoise(0.01)(inception2_out)
+
+    # Inception 3
+    inception3_1x1 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(1, 1), padding='same')(inception2_out)
+    inception3_1x1 = BatchNormalization()(inception3_1x1)
+    inception3_1x1_activate = LeakyReLU(0.2)(inception3_1x1)
+    inception3_2x2 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(2, 2), padding='same')(inception2_out)
+    inception3_2x2 = BatchNormalization()(inception3_2x2)
+    inception3_2x2_activate = LeakyReLU(0.2)(inception3_2x2)
+    inception3_3x3 = Conv2D(filters=int(filter_list[0] / 2), kernel_size=(3, 3), padding='same')(inception2_out)
+    inception3_3x3 = BatchNormalization()(inception3_3x3)
+    inception3_3x3_activate = LeakyReLU(0.2)(inception3_3x3)
+    inception3_out = concatenate([inception3_1x1_activate, inception3_2x2_activate, inception3_3x3_activate])
+
+    if (noise):
+        inception3_out = GaussianNoise(0.01)(inception3_out)
+
+    decoded = Conv2DTranspose(filters=shape[2], kernel_size=(3, 3), padding='same', activation='tanh')(inception3_out)
+
+    input_background = Input(shape=shape)
+
+    merged = merge([decoded, input_background], mode=lambda x: set_subtensor(x[1][:, start:end, start:end, :], x[0]),
+                   output_shape=lambda x: x[1])
+
+    gan_merged_model = Model(outputs=merged, inputs=[input_img, input_caption_vector, input_background])
+
+    input_img_y = Input(shape=shape)
+
+    y1 = Conv2D(filter_list[0], (3, 3), padding='same', strides=(2, 2), data_format='channels_last')(input_img_y)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[1], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[2], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Conv2D(filter_list[3], (3, 3), padding='same', strides=(2, 2))(y1)
+    y1 = BatchNormalization()(y1)
+    y1 = LeakyReLU(alpha=0.2)(y1)
+
+    y1 = Flatten()(y1)
+    y1 = Dropout(0.5)(y1)
+    y1 = Dense(1, activation='sigmoid')(y1)
+
+    adversary_model = Model(outputs=y1, inputs=input_img_y)
+
+    return gan_merged_model, adversary_model
 
 objectives.loss_DSSIM_theano = loss_DSSIM_theano
